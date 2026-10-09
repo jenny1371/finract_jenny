@@ -1,0 +1,66 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/payments}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      timeout: 500ms
+      connect-timeout: 500ms
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      acks: all
+      properties:
+        max.block.ms: 3000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 6000
+
+stripe:
+  enabled: true
+  secret-key: ${STRIPE_SECRET_KEY:}   # test-mode key from .env, never committed
+  simulated: ${STRIPE_SIMULATED:false}                 # load tests only: replaces Stripe with a fixed-latency stand-in
+  simulated-latency-ms: ${STRIPE_SIMULATED_LATENCY_MS:150}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}   # whsec_... from the Stripe CLI / dashboard; empty = webhooks rejected
+
+outbox:
+  enabled: true
+  poll-ms: 100             # was 300; 4 hops per order, so this is paid four times
+  batch-size: 100
+
+payments:
+  claim-timeout-seconds: 30   # a CAPTURING/CANCELING claim older than this may be retried
+  webhook-events-retention-days: 30   # must outlive Stripe webhook retries (days)
+  resolver:
+    pending-after-seconds: 60         # a PENDING payment untouched for this long gets re-run
+    give-up-hours: 12                 # Stripe idempotency keys last ~24 h; fail well before they expire
+    interval-ms: 15000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # needed for p99 in Prometheus/Grafana
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}

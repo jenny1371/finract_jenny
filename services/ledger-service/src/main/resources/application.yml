@@ -1,0 +1,78 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ledger-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/ledger}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      timeout: 500ms
+      connect-timeout: 500ms
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: ledger-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      concurrency: ${LEDGER_CONCURRENCY:6}   # parallel consumers; per-account lock keeps Fineract writes serial
+    producer:
+      acks: all
+      properties:
+        max.block.ms: 3000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 6000
+
+fineract:
+  base-url: ${FINERACT_URL:http://localhost:8443/fineract-provider/api/v1}
+  username: ${FINERACT_USER:mifos}          # Fineract's documented local-dev default
+  password: ${FINERACT_PASSWORD:password}
+  tenant: default
+  payment-type-name: Stripe
+  connect-timeout-ms: 2000
+  read-timeout-ms: 10000
+
+ledger:
+  default-merchant-id: default            # events without merchantId are booked to this merchant
+  default-savings-account-id: ${LEDGER_DEFAULT_SAVINGS_ID:2}   # seeded into merchant_accounts on first start
+  conflict-retries: 3                     # in-call retries on Fineract 409 (optimistic lock), new key each time
+  account-lock-timeout-ms: 30000
+  retry:
+    attempts: 4                           # @RetryableTopic attempts, then DLQ
+    delay-ms: 1000
+    multiplier: 2.0
+  partitions: 6
+
+outbox:
+  enabled: true
+  poll-ms: 100             # was 300; 4 hops per order, so this is paid four times
+  batch-size: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # needed for p99 in Prometheus/Grafana
+        ledger.fineract.deposit: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}

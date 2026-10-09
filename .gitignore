@@ -1,0 +1,10 @@
+﻿target/
+.idea/
+*.env
+.env
+*.iml
+.vscode/
+.DS_Store
+
+# private interview/resume notes (kept locally)
+docs/RESUME-AND-INTERVIEW.md

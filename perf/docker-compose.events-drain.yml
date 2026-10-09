@@ -1,0 +1,13 @@
+# Runs the custom Fineract image that contains the max-batches-per-run change (FINERACT-2900).
+#   MAX_BATCHES=1  docker compose -f docker-compose.yml -f docker-compose.infra.yml -f perf/docker-compose.events-bench.yml -f perf/docker-compose.events-drain.yml up -d fineract
+# MAX_BATCHES=1 is the control (identical to today's behavior); a larger value drains a backlog within one run.
+services:
+  fineract:
+    image: fineract-events-drain:latest
+    pull_policy: never
+    environment:
+      FINERACT_EXTERNAL_EVENTS_MAX_BATCHES_PER_RUN: "${MAX_BATCHES:-1}"
+      LOGGING_LEVEL_ORG_APACHE_FINERACT_INFRASTRUCTURE_EVENT_EXTERNAL: "${EVENT_LOG_LEVEL:-INFO}"   # DEBUG prints per-step timings
+      FINERACT_EXTERNAL_EVENTS_PARALLEL_MESSAGE_CREATION: "${PARALLEL:-false}"   # FINERACT-TBD parallel message creation
+      FINERACT_EVENT_TASK_EXECUTOR_CORE_POOL_SIZE: "${POOL:-8}"
+      FINERACT_COMMAND_PROCESSING_RETRY_EXPONENTIAL_BACKOFF_JITTER: "${JITTER:-0}"   # retry jitter experiment

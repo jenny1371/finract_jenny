@@ -1,0 +1,12 @@
+# Turns on Fineract's external events + Kafka producer for the event-throughput benchmark.
+#   docker compose -f docker-compose.yml -f docker-compose.infra.yml -f perf/docker-compose.events-bench.yml up -d fineract-db kafka fineract
+services:
+  fineract:
+    depends_on:
+      kafka:
+        condition: service_started
+    environment:
+      FINERACT_EXTERNAL_EVENTS_ENABLED: "true"
+      FINERACT_EXTERNAL_EVENTS_KAFKA_ENABLED: "true"
+      FINERACT_EXTERNAL_EVENTS_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      FINERACT_EXTERNAL_EVENTS_KAFKA_TOPIC_NAME: external-events

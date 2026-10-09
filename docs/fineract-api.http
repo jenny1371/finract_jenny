@@ -1,0 +1,23 @@
+### Step 1: learn Fineract's API by hand. Basic auth mifos:password, tenant "default".
+@host = http://localhost:8443/fineract-provider/api/v1
+@auth = Basic bWlmb3M6cGFzc3dvcmQ=
+
+### Health
+GET http://localhost:8443/fineract-provider/actuator/health
+
+### Create a client (customer)
+POST {{host}}/clients
+Authorization: {{auth}}
+Fineract-Platform-TenantId: default
+Content-Type: application/json
+
+{"officeId":1,"legalFormId":1,"firstname":"Test","lastname":"User","active":true,
+ "activationDate":"01 January 2026","submittedOnDate":"01 January 2026",
+ "dateFormat":"dd MMMM yyyy","locale":"en"}
+
+### List savings products (create one first via /savingsproducts if empty)
+GET {{host}}/savingsproducts
+Authorization: {{auth}}
+Fineract-Platform-TenantId: default
+
+### TODO: open savings account -> approve -> activate -> POST deposit; record the exact payloads here.

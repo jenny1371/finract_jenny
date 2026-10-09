@@ -1,0 +1,74 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/orders}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      timeout: 500ms          # fail fast: a hung Redis must not hang order creation (default is 60s)
+      connect-timeout: 500ms
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: order-saga
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      concurrency: ${SAGA_CONCURRENCY:3}
+    producer:
+      acks: all            # with idempotent producer: no loss / no duplicate from producer retries
+      properties:
+        max.block.ms: 3000          # bound how long the outbox poller can block when Kafka is unreachable
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 6000
+
+outbox:
+  enabled: true
+  poll-ms: 100             # was 300; 4 hops per order, so this is paid four times
+  batch-size: 100
+
+payment-service:
+  base-url: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+  connect-timeout-ms: 2000
+  read-timeout-ms: 15000     # Stripe can take several seconds
+
+saga:
+  partitions: 6
+  retry:
+    attempts: 4              # per message: main + retry topics, then DLQ -> MANUAL_REVIEW
+    delay-ms: 1000
+    multiplier: 2.0
+  watchdog:
+    enabled: true
+    interval-ms: 5000
+    stuck-after-ms: 60000    # a state with no progress for this long is re-driven
+    max-redrives: 5          # then the order goes to MANUAL_REVIEW
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # needed for p99 in Prometheus/Grafana
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}

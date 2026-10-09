@@ -1,0 +1,74 @@
+{
+  "uid": "payments-platform",
+  "title": "Payments platform",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "API latency p50 / p99, POST /orders (order-service)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "refId": "A", "legendFormat": "p50", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"order-service\", uri=\"/orders\", method=\"POST\"}[30s])))" },
+        { "refId": "B", "legendFormat": "p99", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"order-service\", uri=\"/orders\", method=\"POST\"}[30s])))" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Orders per second by outcome (idempotency)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{outcome}}", "expr": "sum by (outcome) (rate(orders_idempotency_total[30s]))" }
+      ]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Fineract deposit latency p50 / p99 (ledger-service)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "refId": "A", "legendFormat": "p50", "expr": "histogram_quantile(0.50, sum by (le) (rate(ledger_fineract_deposit_seconds_bucket{outcome=\"ok\"}[30s])))" },
+        { "refId": "B", "legendFormat": "p99", "expr": "histogram_quantile(0.99, sum by (le) (rate(ledger_fineract_deposit_seconds_bucket{outcome=\"ok\"}[30s])))" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Fineract calls per second by outcome, and 409 conflicts",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{outcome}}", "expr": "sum by (outcome) (rate(ledger_fineract_deposit_seconds_count[30s]))" },
+        { "refId": "B", "legendFormat": "conflicts (409)", "expr": "rate(ledger_fineract_conflicts_total[30s])" }
+      ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Saga transitions per second",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "refId": "A", "legendFormat": "to {{to}}", "expr": "sum by (to) (rate(saga_transitions_total[30s]))" }
+      ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Outbox: published / failed per second (all services)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "refId": "A", "legendFormat": "published {{application}}", "expr": "sum by (application) (rate(outbox_published_total[30s]))" },
+        { "refId": "B", "legendFormat": "failed {{application}}", "expr": "sum by (application) (rate(outbox_failed_total[30s]))" }
+      ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "DB connection pool: active and waiting (suspect #4)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        { "refId": "A", "legendFormat": "active {{application}}", "expr": "hikaricp_connections_active" },
+        { "refId": "B", "legendFormat": "pending {{application}}", "expr": "hikaricp_connections_pending" }
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Rate limiter decisions and manual-review orders",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        { "refId": "A", "legendFormat": "ratelimit {{outcome}}", "expr": "sum by (outcome) (rate(ratelimit_decisions_total[30s]))" },
+        { "refId": "B", "legendFormat": "manual review {{cause}}", "expr": "sum by (cause) (saga_manual_review_total)" }
+      ]
+    }
+  ]
+}
