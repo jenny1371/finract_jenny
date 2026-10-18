@@ -12,12 +12,13 @@ vars:
   as_of: null                          # reconciliation "now"; null = the current time. Pin it to make a run reproducible.
   recon_grace_seconds: 300             # a payment younger than this may still be in flight: not reported (same as the service)
   recon_lookback_days: 30              # how far back each batch run compares
+  incremental_lookback_minutes: 15     # staging re-reads this much before the newest file it already processed (safety margin)
   max_cdc_lag_hours: 24                # the freshness test warns when the newest change in the lake is older than this
 
 models:
   payments_analytics:
     staging:
-      +materialized: view
+      +materialized: incremental            # each model sets its own config; the current state of a table, updated from new files
     intermediate:
       +materialized: view
     marts:

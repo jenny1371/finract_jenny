@@ -40,11 +40,16 @@ class Lake:
             "before": json.dumps(before) if before else None, "after": json.dumps(after) if after else None,
             "ingested_at": datetime.now(timezone.utc)})
 
-    def write(self):
+    def write(self, name="part-0", ingested_at=None):
+        """One file per table for the events collected so far; `ingested_at` is when the writer 'wrote' it."""
         for directory, rows in self.rows.items():
+            if ingested_at is not None:
+                for row in rows:
+                    row["ingested_at"] = ingested_at
             target = self.root / "raw" / directory / "dt=2026-10-17"
             target.mkdir(parents=True, exist_ok=True)
-            pq.write_table(pa.Table.from_pylist(rows, schema=SCHEMA), target / "part-0.parquet")
+            pq.write_table(pa.Table.from_pylist(rows, schema=SCHEMA), target / f"{name}.parquet")
+        self.rows = {}
 
 
 def payment(i, amount, status="CAPTURED", created="2026-10-17T10:00:00.000000Z"):

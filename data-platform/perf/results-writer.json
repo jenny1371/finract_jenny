@@ -1,0 +1,80 @@
+{
+  "rows": 300000,
+  "sql_insert_seconds": 10.0,
+  "debezium_to_kafka_seconds": 27.6,
+  "debezium_rows_per_s": 10862,
+  "drains": [
+    {
+      "client": "confluent",
+      "batch_size": 1000,
+      "rows": 300000,
+      "seconds": 17.9,
+      "rows_per_s": 16757,
+      "files": 308,
+      "mb": 21.8
+    },
+    {
+      "client": "confluent",
+      "batch_size": 5000,
+      "rows": 300000,
+      "seconds": 14.3,
+      "rows_per_s": 21041,
+      "files": 66,
+      "mb": 20.9
+    },
+    {
+      "client": "confluent",
+      "batch_size": 20000,
+      "rows": 300000,
+      "seconds": 14.8,
+      "rows_per_s": 20239,
+      "files": 21,
+      "mb": 20.5
+    },
+    {
+      "client": "confluent",
+      "batch_size": 50000,
+      "rows": 300000,
+      "seconds": 14.8,
+      "rows_per_s": 20330,
+      "files": 12,
+      "mb": 20.2
+    },
+    {
+      "client": "kafka-python",
+      "batch_size": 1000,
+      "rows": 300000,
+      "seconds": 82.3,
+      "rows_per_s": 3644,
+      "files": 247,
+      "mb": 21.7
+    },
+    {
+      "client": "kafka-python",
+      "batch_size": 5000,
+      "rows": 300000,
+      "seconds": 57.6,
+      "rows_per_s": 5210,
+      "files": 65,
+      "mb": 20.9
+    },
+    {
+      "client": "kafka-python",
+      "batch_size": 20000,
+      "rows": 300000,
+      "seconds": 58.5,
+      "rows_per_s": 5132,
+      "files": 20,
+      "mb": 20.5
+    },
+    {
+      "client": "kafka-python",
+      "batch_size": 50000,
+      "rows": 300000,
+      "seconds": 58.0,
+      "rows_per_s": 5168,
+      "files": 11,
+      "mb": 20.2
+    }
+  ]
+}

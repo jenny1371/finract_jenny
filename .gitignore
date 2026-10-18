@@ -21,3 +21,8 @@ data-platform/orchestration/.dagster/
 data-platform/orchestration/.tmp_dagster_home_*/
 __pycache__/
 .pytest_cache/
+data-platform/perf/lake-*/
+data-platform/perf/wh-*
+data-platform/perf/cdc-latency-*/
+data-platform/perf/writer-*/
+data-platform/perf/stages-*/

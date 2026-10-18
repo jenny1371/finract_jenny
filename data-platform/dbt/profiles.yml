@@ -1,10 +1,15 @@
 # Local warehouse: one DuckDB file that reads the Parquet lake. Swapping the target for BigQuery or Snowflake means
 # another adapter here plus loading the raw layer into that warehouse; the SQL models stay as they are, apart from the
 # few DuckDB-specific functions (json_extract_string, read_parquet, qualify, distinct on).
+#
+# WAREHOUSE_PATH, DUCKDB_MEMORY_LIMIT and DBT_THREADS exist so the performance tests can vary them; the defaults are
+# what the pipeline runs with.
 payments_analytics:
   target: local
   outputs:
     local:
       type: duckdb
       path: "{{ env_var('WAREHOUSE_PATH', '../warehouse/payments.duckdb') }}"
-      threads: 4
+      threads: "{{ env_var('DBT_THREADS', '1') | as_number }}"   # 1: dbt threads multiply DuckDB's own threads (see PERFORMANCE.md)
+      settings:
+        memory_limit: "{{ env_var('DUCKDB_MEMORY_LIMIT', '12GB') }}"
