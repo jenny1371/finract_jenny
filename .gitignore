@@ -8,3 +8,16 @@
 
 # private interview/resume notes (kept locally)
 docs/RESUME-AND-INTERVIEW.md
+
+# data platform: generated, rebuildable from Kafka / the databases
+data-platform/.venv/
+data-platform/lake/
+data-platform/warehouse/
+data-platform/.demo-expected.json
+data-platform/dbt/target/
+data-platform/dbt/logs/
+data-platform/dbt/dbt_packages/
+data-platform/orchestration/.dagster/
+data-platform/orchestration/.tmp_dagster_home_*/
+__pycache__/
+.pytest_cache/

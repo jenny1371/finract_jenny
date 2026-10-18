@@ -1,0 +1,67 @@
+version: 2
+
+# Data quality, level 1: the current state built from change events must still be a valid table.
+models:
+  - name: stg_payments
+    columns:
+      - name: payment_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests: [not_null]
+      - name: amount_cents
+        data_tests: [not_null]
+      - name: status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [CREATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED, CANCELED, PENDING, UNKNOWN]
+              config: { severity: warn }       # a new status in the service is a signal to look, not a reason to stop
+      - name: currency
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [USD, EUR, GBP, JPY, TWD]
+
+  - name: stg_orders
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: payment_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_payments')
+                field: payment_id
+              config: { severity: warn, where: "payment_id is not null" }
+
+  - name: stg_ledger_entries
+    columns:
+      - name: ledger_entry_id
+        data_tests: [unique, not_null]
+      - name: payment_id
+        data_tests:
+          - unique                              # UNIQUE(payment_id) is what makes re-emitted events harmless
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_payments')
+                field: payment_id
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [PENDING, BOOKED, FAILED]
+
+  - name: stg_fineract_transactions
+    columns:
+      - name: transaction_id
+        data_tests: [unique, not_null]
+      - name: savings_account_id
+        data_tests: [not_null]
+
+  - name: stg_fineract_notes
+    columns:
+      - name: note_id
+        data_tests: [unique, not_null]

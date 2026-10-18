@@ -1,0 +1,25 @@
+{
+  "name": "cdc-fineract",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "plugin.name": "pgoutput",
+    "database.hostname": "fineract-db",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.dbname": "fineract_default",
+    "topic.prefix": "cdc.fineract_default",
+    "table.include.list": "public.m_savings_account_transaction,public.m_note,public.m_savings_account",
+    "slot.name": "dbz_fineract_default",
+    "publication.name": "dbz_fineract_default",
+    "publication.autocreate.mode": "filtered",
+    "snapshot.mode": "initial",
+    "decimal.handling.mode": "string",
+    "time.precision.mode": "connect",
+    "tombstones.on.delete": "false",
+    "heartbeat.interval.ms": "10000",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

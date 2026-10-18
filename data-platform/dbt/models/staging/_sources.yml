@@ -1,0 +1,25 @@
+version: 2
+
+# The raw layer: change events exactly as Debezium sent them, one Parquet file set per source table.
+sources:
+  - name: lake
+    description: Change events captured by Debezium and written by lake_writer.
+    tables:
+      - name: orders
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/orders__orders/*/*.parquet', union_by_name = true)"
+      - name: payments
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/payments__payments/*/*.parquet', union_by_name = true)"
+      - name: ledger_entries
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/ledger__ledger_entries/*/*.parquet', union_by_name = true)"
+      - name: fineract_savings_account
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/fineract_default__m_savings_account/*/*.parquet', union_by_name = true)"
+      - name: fineract_savings_transaction
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/fineract_default__m_savings_account_transaction/*/*.parquet', union_by_name = true)"
+      - name: fineract_note
+        meta:
+          external_location: "read_parquet('{{ var('lake_path') }}/raw/fineract_default__m_note/*/*.parquet', union_by_name = true)"

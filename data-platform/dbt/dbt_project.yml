@@ -1,0 +1,24 @@
+name: payments_analytics
+version: "0.1.0"
+config-version: 2
+profile: payments_analytics
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+vars:
+  lake_path: "../lake"                 # where lake_writer puts the raw Parquet files, relative to this directory
+  as_of: null                          # reconciliation "now"; null = the current time. Pin it to make a run reproducible.
+  recon_grace_seconds: 300             # a payment younger than this may still be in flight: not reported (same as the service)
+  recon_lookback_days: 30              # how far back each batch run compares
+  max_cdc_lag_hours: 24                # the freshness test warns when the newest change in the lake is older than this
+
+models:
+  payments_analytics:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

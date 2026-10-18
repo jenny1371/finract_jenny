@@ -1,0 +1,10 @@
+# Local warehouse: one DuckDB file that reads the Parquet lake. Swapping the target for BigQuery or Snowflake means
+# another adapter here plus loading the raw layer into that warehouse; the SQL models stay as they are, apart from the
+# few DuckDB-specific functions (json_extract_string, read_parquet, qualify, distinct on).
+payments_analytics:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('WAREHOUSE_PATH', '../warehouse/payments.duckdb') }}"
+      threads: 4

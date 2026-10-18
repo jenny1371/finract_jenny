@@ -1,0 +1,27 @@
+# Change data capture. Layer on top of the platform stack:
+#   docker compose -f docker-compose.yml -f docker-compose.infra.yml -f docker-compose.cdc.yml up -d
+# Debezium reads the Postgres write-ahead log of the platform databases and of Fineract and writes every row change to
+# Kafka (topics cdc.<database>.public.<table>). Nothing in the services changes: they do not know it is there.
+services:
+  postgres:                       # orders, payments, ledger, reconciliation databases
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10"]
+
+  fineract-db:                    # fineract_default: the ledger's own tables
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10"]
+
+  connect:
+    image: quay.io/debezium/connect:2.7.3.Final
+    ports: ["8093:8083"]          # 8083 is the ledger-service port
+    depends_on: [kafka, postgres, fineract-db]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: cdc-connect
+      CONFIG_STORAGE_TOPIC: _connect_configs
+      OFFSET_STORAGE_TOPIC: _connect_offsets
+      STATUS_STORAGE_TOPIC: _connect_status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx768m"

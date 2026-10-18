@@ -40,6 +40,16 @@ compare the rows to each other. Full method and reproduction: [docs/PROBLEMS-SOL
 | One hot ledger account (Fineract serializes writes per account) | p50 / p99 = 75 s / 160 s, 3.7 min backlog | with 10 merchant accounts: 0.8 s / 1.0 s, no backlog |
 | Reconciliation read the full transaction history of an account | 3.8 s, 6.1 MB (1,323 transactions, grows without bound) | 0.24 s, 241 KB per page of 200 (paged, date-filtered) |
 
+## Data platform (change data capture, batch reconciliation, metrics)
+
+Debezium captures every row change of the platform databases and of Fineract into Kafka; a writer lands them as Parquet;
+Dagster runs a daily batch (capture, then dbt on DuckDB) that reconciles payments against the Fineract ledger with 35
+data-quality tests and builds daily volume and difference-rate tables. It was run against the real stack with differences
+planted on purpose, and the result matched exactly: updates and deletes in the source were followed, a failed integrity test
+and a stopped Debezium both stopped the run, and Debezium resumed without losing a change. Not a load test, and the
+warehouse is DuckDB, not BigQuery or Snowflake. Details and the full list of what was and was not tested:
+[data-platform/README.md](data-platform/README.md).
+
 ## Contributions to Apache Fineract
 
 Found with the probe scripts in [scripts/](scripts/) (20+ failure scenarios against a live Fineract on PostgreSQL).

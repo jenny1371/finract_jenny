@@ -1,0 +1,31 @@
+version: 2
+
+# Data quality, level 2: what the analytics layer promises. Cross-table rules are in ../../tests/.
+models:
+  - name: recon_discrepancies
+    description: One row per (payment, kind of difference) between the payments and the Fineract ledger.
+    columns:
+      - name: type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [MISSING_IN_LEDGER, MISSING_IN_STRIPE, AMOUNT_MISMATCH, DUPLICATE_BOOKING]
+      - name: payment_id
+        data_tests: [not_null]
+      - name: amount_at_risk_cents
+        data_tests: [not_null]
+
+  - name: fct_daily_transaction_volume
+    description: Daily captured volume per currency and how much of it reached the ledger.
+    columns:
+      - name: day
+        data_tests: [not_null]
+      - name: captured_cents
+        data_tests: [not_null]
+
+  - name: fct_daily_reconciliation
+    description: Daily number of payments reconciled, differences found and the difference rate.
+    columns:
+      - name: day
+        data_tests: [unique, not_null]
