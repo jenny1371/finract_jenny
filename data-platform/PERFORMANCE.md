@@ -148,8 +148,23 @@ The dbt build exited 0 every time. A crawler was running on the same laptop duri
 - `compact` is covered by [`tests/test_compact.py`](tests/test_compact.py): no row lost or duplicated, sorted by offset,
   a file younger than the minimum age is left alone, a partition with one file is not rewritten.
 
+## 6. End-to-end run with the new defaults (2026-10-19)
+
+Real Postgres 16, Kafka 3.9, Debezium 2.7 and Fineract (the containers of the platform), the C Kafka client
+(confluent-kafka 2.16) and one dbt thread, driven by the Dagster job `reconcile_daily`.
+
+| Check | Result |
+|---|---|
+| Dagster run: capture, then `dbt build` | success; 45 dbt nodes (6 incremental models, 3 tables, 1 view, 35 tests) all pass, 33 asset checks evaluated |
+| Capture | 3,673,659 change events drained in one run (the backlog the benchmarks of sections 1 and 2 left in the topics); 761 files; whole job 3 min 22 s |
+| Fresh demo data (4 days, 6 payments per day) with one planted difference of each type | exact: 1 `MISSING_IN_LEDGER`, 1 `MISSING_IN_STRIPE`, 1 `AMOUNT_MISMATCH`, 1 `DUPLICATE_BOOKING`; the payment inside the grace period not reported; none of the 21 clean payments reported |
+| Compaction of the captured lake | 761 files to 12 (8.4 s); `recon_discrepancies` (3,673,133 rows), both daily marts and the staging tables identical before and after |
+| Debezium stopped | the run fails at the blocking check `all_connectors_running`, dbt does not run; after Debezium restarts the next run succeeds |
+
+The 3.67 million benchmark payments are in the warehouse too, so the check against the planted differences looks only at
+the 25 payments of the fresh demo seed (and the ledger entry planted as `MISSING_IN_STRIPE`).
+
 ## Next
 
 1. Find where one laptop stops: 12 million payments, or a lower memory limit at 6 million.
 2. Time the marts (`recon_discrepancies`, `fct_daily_transaction_volume`) as separate costs at 3 and 6 million payments.
-3. Run the end-to-end pipeline (Debezium to Dagster) once with the new defaults (C Kafka client, one dbt thread).
