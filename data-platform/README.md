@@ -37,7 +37,7 @@ is made.
 | `DELETE` of a payment that a ledger entry and an order still reference | the run **fails** on the `relationships` tests; nothing is published |
 | Debezium stopped, a change made meanwhile | the run **fails** at the blocking check `all_connectors_running`, dbt does not run; after Debezium restarts it resumes from its replication slot and the change appears (nothing lost) |
 | Same run repeated | same result (idempotent) |
-| Offline tests ([`tests/`](tests/)), 15 | pass: lake_writer parsing and file writing; the real dbt project on a synthetic lake with a redelivered Kafka record, an update, a reversed deposit, a duplicate booking, a payment inside the grace period, and a negative amount that must stop the build |
+| Offline tests ([`tests/`](tests/)), 22 | pass: lake_writer parsing and file writing; the real dbt project on a synthetic lake with a redelivered Kafka record, an update, a reversed deposit, a duplicate booking, a payment inside the grace period, and a negative amount that must stop the build |
 
 The Dagster run evaluates 33 asset checks: 32 dbt tests and the connector check. The other 3 dbt tests span several tables
 (amounts positive, daily volume adds up, freshness), so Dagster does not attach them to one asset; they still run inside
@@ -53,6 +53,30 @@ day          checked with diff missing amount  dup no pay   at risk diff rate
 2026-10-13         8         1       0      1    0      0      1.00     12.5%
 2026-10-14         8         1       0      0    1      0      7.99     12.5%
 2026-10-15        11         1       1      0    0      2     73.99      9.1%
+```
+
+## Performance
+
+One laptop (15.6 GB RAM), synthetic data, relative results; method, raw files and more tables in
+[PERFORMANCE.md](PERFORMANCE.md).
+
+| Question | Finding |
+|---|---|
+| How long from commit in Postgres to a Parquet file? | p50 0.9 s / p99 1.5 s at 10,000 rows/s (17,000 rows/s of small transactions also landed); Debezium is about 0.5 s of it |
+| How fast does the writer drain a backlog? | kafka-python 5,200 rows/s; confluent-kafka (C client) 21,000 rows/s, 28,000 with orjson. 81 % of the time was the Kafka client library, not file writing |
+| Does the reconciliation scale? | Tests at 1,000,000 payments went from 160.7 s to 5.9 s when staging models became incremental tables; a run with 1 % new data takes 6.4 s against 22.5 s for a full refresh |
+| Do more dbt threads help? | No. DuckDB already uses every core. 3,000,000 payments: 4 threads 204 s, 2 threads 69 s, 1 thread 61 s. The default is one thread |
+| What do many small files cost? | 8 million events took 20.8 s in 145 files and 210.8 s in 79,973 files (scan 0.35 s against 2.18 s). Below a few thousand files no difference. `lake_writer/compact.py` merges them |
+| Memory | First build of 1,000,000 payments needs about 2 GB (1 thread); 6,000,000 payments (48 million events) fit at 6.5 GB. Incremental runs: 1.1 GB at 1,000,000 payments |
+
+Reproduce (needs `perf/requirements.txt`; the lake generator and dbt need no Docker):
+
+```bash
+python data-platform/perf/bench_dbt.py              # dbt time and memory as the lake grows
+python data-platform/perf/bench_small_files.py --payments 100000 --rows-per-file 100,500,5000
+python data-platform/perf/bench_writer.py           # writer throughput (needs Kafka and Debezium)
+python data-platform/perf/bench_cdc_latency.py      # commit-to-file latency (needs the full stack)
+python -m lake_writer.compact --lake data-platform/lake   # merge small files
 ```
 
 ## Data-quality checks
@@ -106,5 +130,5 @@ Offline tests, no Docker: `python -m pytest data-platform/tests`.
 - Debezium's JSON converter must have schemas disabled in the connector config; the Debezium image ignores the
   environment variables for this. The writer also accepts the wrapped form.
 - **Not done:** schema evolution handling, backfills of history from before capture started (the connectors take an initial
-  snapshot of each table when first registered), PII handling, retention of the raw layer, performance at volume, an Airflow
+  snapshot of each table when first registered), PII handling, retention of the raw layer, an Airflow
   version of the DAG.

@@ -1,9 +1,7 @@
 # Performance of the data platform
 
-**Status: checkpoint, not finished.** The measurements below were run; the small-file test, the limit of this laptop and
-the write-up in the main README are still to do (list at the end). Everything is one laptop (15.6 GB RAM), one Postgres,
-one Kafka broker, one Debezium, DuckDB with a 12 GB memory limit, and synthetic data. These are relative results that
-show where the bottleneck is and why, not production numbers.
+Everything is one laptop (15.6 GB RAM), one Postgres, one Kafka broker, one Debezium, DuckDB with a 12 GB memory limit,
+and synthetic data. These are relative results that show where the bottleneck is and why, not production numbers.
 
 Rows are written straight into the source database (not through the API), so the backend is not what is measured.
 
@@ -123,17 +121,35 @@ First build of 1,000,000 payments (8 million events):
   thread. Ordinary incremental runs do not: 1.1 GB at 1,000,000 payments with 1 % new data.
 - The upper limit of this laptop has **not been found**: 6,000,000 payments (48 million events) still fit, at 6.5 GB.
 
-## To do (next session)
+## 5. Small files: what many tiny Parquet files cost, and what compaction buys back
 
-1. Small files: [`perf/bench_small_files.py`](perf/bench_small_files.py) is written and not run. It shatters a lake into
-   files of 100, 500 and 5,000 rows, times a scan and `dbt run`, compacts (`lake_writer/compact.py`, written and not yet
-   tested) and times them again.
-2. Test `compact` (a unit test and one run on the lake the CDC benchmark leaves behind).
-3. Find where one laptop stops: 12 million payments, or lower the memory limit at 6 million.
-4. Check the marts (`recon_discrepancies`, `fct_daily_transaction_volume`) as separate costs at 3 and 6 million.
-5. Re-run the end-to-end pipeline (Debezium to Dagster) once with the new defaults (C Kafka client, one dbt thread).
-6. Update `README.md` here and the main README: the writer's follow mode, client choice and compaction, incremental
-   staging, a short performance section with these tables, and the questions an interviewer will ask ("what if the data is
-   100 times bigger": the first build and backfills need memory in proportion to history, incremental runs do not; the
-   next steps are partitioned backfills, or a warehouse).
-7. Add psutil (`perf/requirements.txt`) and the perf commands to the README.
+A low-latency writer flushes often and leaves many small files (flushing every 0.5 s is 172,800 files per table per day).
+[`perf/bench_small_files.py`](perf/bench_small_files.py) rewrites a lake as files of a fixed number of rows, times one
+scan (count and group by over the payments events) and one `dbt run`, merges the lake with
+[`lake_writer/compact.py`](lake_writer/compact.py) (one file per table and day), and times the same two things again.
+The dbt build exited 0 every time. A crawler was running on the same laptop during these runs, and each setting was run once. Raw: `results-small-files-100k.json`, `results-small-files-1m.json`.
+
+| payments (events) | rows per file | files before | scan before / after | `dbt run` before / after | compaction time | files after |
+|---|---|---|---|---|---|---|
+| 100,000 (0.8 million) | 100 | 8,037 | 0.26 s / 0.05 s | 9.2 s / 5.7 s | 17 s | 141 |
+| 100,000 | 500 | 1,709 | 0.06 s / 0.06 s | 8.0 s / 6.0 s | 6 s | 141 |
+| 100,000 | 5,000 | 225 | 0.05 s / 0.04 s | 8.0 s / 6.1 s | 2 s | 141 |
+| 1,000,000 (8 million) | 100 | **79,973** | **2.18 s / 0.35 s** | **210.8 s / 20.8 s** | 203 s | 145 |
+| 1,000,000 | 5,000 | 1,713 | 0.24 s / 0.31 s | 21.1 s / 22.0 s | 17 s | 145 |
+
+- The cost grows with the number of files, not with the number of rows. The same 8 million events took 20.8 s in 145
+  files and 210.8 s in 79,973 files: ten times slower.
+- Below a few thousand files there is no measurable difference (1,713 files: 21.1 s against 22.0 s after compaction).
+  At 100,000 payments the gain of 3 s on `dbt run` is within run-to-run noise (one run per setting).
+- Compaction itself is not free: 203 s for the 79,973 files, so it has to run regularly (it only touches files older than
+  60 s by default) rather than once after a long backlog has built up.
+- This is a trade against latency (section 1): flushing every 0.5 s gives p99 1.6 s but 2.5 times more files than a 2 s
+  flush. With compaction as a scheduled job, the short flush interval costs the reader little.
+- `compact` is covered by [`tests/test_compact.py`](tests/test_compact.py): no row lost or duplicated, sorted by offset,
+  a file younger than the minimum age is left alone, a partition with one file is not rewritten.
+
+## Next
+
+1. Find where one laptop stops: 12 million payments, or a lower memory limit at 6 million.
+2. Time the marts (`recon_discrepancies`, `fct_daily_transaction_volume`) as separate costs at 3 and 6 million payments.
+3. Run the end-to-end pipeline (Debezium to Dagster) once with the new defaults (C Kafka client, one dbt thread).

@@ -1,0 +1,40 @@
+[
+  {
+    "payments": 1000000,
+    "rows_per_file": 100,
+    "files_before": 79973,
+    "files_after": 145,
+    "before_compaction": {
+      "scan_seconds": 2.18,
+      "dbt_run_seconds": 210.8
+    },
+    "after_compaction": {
+      "scan_seconds": 0.35,
+      "dbt_run_seconds": 20.8
+    },
+    "compact_seconds": 202.5,
+    "dbt_exit": [
+      0,
+      0
+    ]
+  },
+  {
+    "payments": 1000000,
+    "rows_per_file": 5000,
+    "files_before": 1713,
+    "files_after": 145,
+    "before_compaction": {
+      "scan_seconds": 0.24,
+      "dbt_run_seconds": 21.1
+    },
+    "after_compaction": {
+      "scan_seconds": 0.31,
+      "dbt_run_seconds": 22.0
+    },
+    "compact_seconds": 17.2,
+    "dbt_exit": [
+      0,
+      0
+    ]
+  }
+]

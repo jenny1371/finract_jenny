@@ -1,0 +1,59 @@
+[
+  {
+    "payments": 100000,
+    "rows_per_file": 100,
+    "files_before": 8037,
+    "files_after": 141,
+    "before_compaction": {
+      "scan_seconds": 0.26,
+      "dbt_run_seconds": 9.2
+    },
+    "after_compaction": {
+      "scan_seconds": 0.05,
+      "dbt_run_seconds": 5.7
+    },
+    "compact_seconds": 17.1,
+    "dbt_exit": [
+      0,
+      0
+    ]
+  },
+  {
+    "payments": 100000,
+    "rows_per_file": 500,
+    "files_before": 1709,
+    "files_after": 141,
+    "before_compaction": {
+      "scan_seconds": 0.06,
+      "dbt_run_seconds": 8.0
+    },
+    "after_compaction": {
+      "scan_seconds": 0.06,
+      "dbt_run_seconds": 6.0
+    },
+    "compact_seconds": 5.6,
+    "dbt_exit": [
+      0,
+      0
+    ]
+  },
+  {
+    "payments": 100000,
+    "rows_per_file": 5000,
+    "files_before": 225,
+    "files_after": 141,
+    "before_compaction": {
+      "scan_seconds": 0.05,
+      "dbt_run_seconds": 8.0
+    },
+    "after_compaction": {
+      "scan_seconds": 0.04,
+      "dbt_run_seconds": 6.1
+    },
+    "compact_seconds": 2.0,
+    "dbt_exit": [
+      0,
+      0
+    ]
+  }
+]
