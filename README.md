@@ -59,9 +59,6 @@ Fixes were verified on a rebuilt image, before and after, with the same script.
 |---|---|---|---|---|
 | FINERACT-2829 | [#6587](https://github.com/apache/fineract/pull/6587) | Document the `disabled` field in the roles OpenAPI responses (the ticket said `status`; the API returns `disabled`) | Compared real responses with the OpenAPI classes | Merged |
 | FINERACT-2902 | [#6591](https://github.com/apache/fineract/pull/6591) | Savings-to-savings transfers lock both accounts in ascending id order, which removes a deadlock between opposite-direction transfers | 60 crossing transfers: **4 succeeded, 56 DB deadlocks** before; **60 succeeded, 0 deadlocks** after (`pg_stat_database.deadlocks`); money conserved | Open |
-| FINERACT-2900 | [#6590](https://github.com/apache/fineract/pull/6590) | New setting `max-batches-per-run` so the send-events job drains a backlog within one run (default 1, behavior unchanged) | 12,000 queued events: 1,000 per minute with the default; all sent in one run (about 4 s) with 20 batches | Open |
-| FINERACT-2485 | comment, then dev list | Idempotency behavior the new design leaves undefined (same key with a different amount or a different account) | Scripted against a real instance; cause located in `CommandSourceService.findCommandSource` | Discussion |
-| FINERACT-1997 | — | Failed Batch API requests leave no audit row with `enclosingTransaction=true` | Reproduced on current `develop`: without the flag both requests are written to `m_portfolio_command_source` (failed one with status 5); with it, no row at all. Earlier attempts #4791 (merged), #4845 (revert), #4847 (closed) | Reproduced |
 
 Tested on PostgreSQL; savings-to-savings transfers.
 
